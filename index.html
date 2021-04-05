@@ -81,6 +81,7 @@
         this.load.spritesheet('dude', 'assets/dude.png', {frameWidth: 32, frameHeight: 48});
 
         this.load.audio('music', ['assets/star_rider.mp3'])
+        this.load.audio('mario', ['assets/mario.mp3'])
     }
 
     function create() {
@@ -136,7 +137,14 @@
 
     function update() {
         if (inwonersBelgie <= 0) {
+            if (gameOver){
+                return;
+            }
             news.setText("De overheid kan dus duidelijk niets goed doen.");
+            music.stop()
+            mario = this.sound.add('mario');
+            mario.play();
+            gameOver = true;
         }
         if (i % 250 === 0){
             var randomNumber = Math.floor(Math.random()*newsItems.length);
