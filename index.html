@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Making your first Phaser 3 Game - Part 10</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+    var config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: {y: 300},
+                debug: false
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
+
+    var player;
+    var stars;
+    var bombs;
+    var platforms;
+    var cursors;
+    var score = 0;
+    var gameOver = false;
+    var scoreText;
+
+    var coronaDoden = 0;
+    var zelfmoordDoden = 0;
+    var coronaVelocity = 2;
+    var suicideVelocity = -2;
+    var coronaToday = 1;
+    var suicideToday = 1;
+    var lockDownDays = 0;
+    var inwonersBelgie = 11460000;
+    var lockDown = false;
+    var i = 0;
+
+    var newsItems = [
+        'WINAK is immuum tegen corona door overconsumptie alcohol',
+        'Mensen in Belgie plegen meer zelfmoord dan in Japan',
+        'Aescu is de oorzaak van corona',
+        'Toiletpapier enkel voor mannen, want vrouwen kakken niet',
+        'Kim Jong Un is ontploft aan corona',
+        'Corona komt in het Guinness Book of World Record',
+        'Veel mensen dood aan corona',
+        'Nieuwszender z\'n inspiratie is op',
+        'Alcohol is op in de wereld, WINAK heeft te veel gedronken',
+    ]
+
+    var game = new Phaser.Game(config);
+
+    function preload() {
+        // this.load.image('background', 'assets/background.png')
+        this.load.image('background', 'assets/covid.png')
+        this.load.image('button', 'assets/button.png')
+
+        this.load.image('lockdown', 'assets/lockdown.png')
+        this.load.image('unlockdown', 'assets/unlockdown.png')
+
+        this.load.image('sky', 'assets/sky.png');
+        this.load.image('ground', 'assets/platform.png');
+        this.load.image('star', 'assets/star.png');
+        this.load.image('bomb', 'assets/bomb.png');
+        this.load.spritesheet('dude', 'assets/dude.png', {frameWidth: 32, frameHeight: 48});
+
+        this.load.audio('music', ['assets/star_rider.mp3'])
+    }
+
+    function create() {
+        //  A simple background for our game
+        this.add.image(400, 300, 'background');
+
+         music = this.sound.add('music');
+         music.play();
+
+        //  Input Events
+        ldButton = this.add.sprite(400, 450, 'lockdown')
+            .setInteractive()
+            .on('pointerdown', () => ldButton.setScale(1.1))
+            .on('pointerup', () => ldButton.setScale(1))
+            .on('pointerdown', () => toggleLockdown());
+
+        uldButton = this.add.sprite(400, 450, 'unlockdown')
+            .setInteractive()
+            .on('pointerdown', () => uldButton.setScale(1.1))
+            .on('pointerup', () => uldButton.setScale(1))
+            .on('pointerdown', () => toggleLockdown());
+        uldButton.visible = false
+
+        //  Coronadoden vandaag
+        this.add.text(25, 20, 'coronadoden vandaag', {fontSize: '28px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+        coronaDodenTodayText = this.add.text(25, 50, '0', {fontSize: '70px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+
+        // Zelfmoord vandaag
+        this.add.text(400, 20, 'zelfmoorden vandaag', {fontSize: '28px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+        zelfmoordDodenTodayText = this.add.text(400, 50, '0', {fontSize: '70px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+
+        //  Coronadoden totaal
+        this.add.text(25, 130, 'coronadoden totaal', {fontSize: '28px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+        coronaDodenTotalText = this.add.text(25, 160, '0', {fontSize: '70px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+
+        // Zelfmoord totaal
+        this.add.text(400, 130, 'zelfmoorden totaal', {fontSize: '28px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+        zelfmoordDodenTotalText = this.add.text(400, 160, '0', {fontSize: '70px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+
+        // Aantal belgen nog levend
+        this.add.text(25, 240, 'levende belgen', {fontSize: '28px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+        levendBelgieText = this.add.text(25, 270, inwonersBelgie, {fontSize: '70px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+
+        news = this.add.text(25, 550, 'Latest news', {fontSize: '18px', fill: '#fff', origin: {x: 0.5, y: 0.5}});
+
+        if (lockDown) {
+            suicideVelocity *= Math.random()/5 + 1
+        } else {
+            coronaVelocity *= Math.random()/2 + 1
+        }
+
+    }
+
+    function update() {
+        if (i % 250 === 0){
+            var randomNumber = Math.floor(Math.random()*newsItems.length);
+            news.setText(newsItems[randomNumber])
+        }
+
+        i += 1
+
+
+        if (inwonersBelgie <= 0) {
+            return;
+        }
+
+        suicideToday = Math.max(Math.round(suicideToday + suicideVelocity*Math.random()*5 + Math.random()*10), 0);
+        coronaToday = Math.max(Math.round(coronaToday + coronaVelocity*Math.random()*5 + Math.random()*10), 0);
+        console.log("sv:" + suicideVelocity)
+        console.log("cv" + coronaVelocity)
+
+        coronaDoden += coronaToday;
+        zelfmoordDoden += suicideToday;
+        inwonersBelgie = Math.max(inwonersBelgie - coronaToday - suicideToday, 0);
+
+        coronaDodenTodayText.setText(coronaToday)
+        zelfmoordDodenTodayText.setText(suicideToday)
+
+        coronaDodenTotalText.setText(coronaDoden)
+        zelfmoordDodenTotalText.setText(zelfmoordDoden)
+
+        levendBelgieText.setText(inwonersBelgie)
+
+    }
+
+    function toggleLockdown() {
+        uldButton.visible = !uldButton.visible
+        ldButton.visible = !ldButton.visible
+
+        coronaVelocity = -coronaVelocity;
+        suicideVelocity = -suicideVelocity;
+        // button.loadTexture('unlockdown');
+        lockDown = !lockDown;
+
+        console.log("Lockdown: " + lockDown)
+        console.log(coronaVelocity)
+        console.log(suicideVelocity)
+    }
+
+</script>
+
+</body>
+</html>
